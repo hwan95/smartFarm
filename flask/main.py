@@ -1,154 +1,174 @@
-from flask import Flask, request
-from flask import jsonify
+from flask import Flask, request, render_template, jsonify
 from flask_mysqldb import MySQL
 from datetime import datetime
 from datetime import timedelta
-import RPi.GPIO as GPIO
+import requests
+import json
+import sys
+from external import weather
 
+# flask 설정
 app = Flask(__name__)
 app.secret_key = 'my_secret_key'
 app.config['JSON_AS_ASCII'] = False
-# app.config['SESSION_TYPE'] = 'filesystem'
-
+# mysql 설정 정보
 app.config['MYSQL_HOST'] = '172.16.10.57'
 app.config['MYSQL_USER'] = 'test'
 app.config['MYSQL_PASSWORD'] = 'test'
 app.config['MYSQL_DB'] = 'mydb'
 app.config['MYSQL_CHARSET'] = 'utf8mb4'
-
-# app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 mysql = MySQL(app)
-# Session(app)
 
-####아두이노 
-
-# 팬 작동 함수
-def fan_on():
-    try:
-        GPIO.output(23, GPIO.HIGH) # High 신호 전달
-        return "on"
-    except expression as identifier:
-        return "fail"
-
-# 팬 중지 함수
-def fan_off():
-    try:
-        GPIO.output(23, GPIO.LOW) # Low 신호 전달
-        return "off"
-    except Exception as identifier:
-        return "fail"
-    
-# 조도 센서 작동
-# @app.route("/led/on")
-def led_on():
-    try:
-        GPIO.output(14, GPIO.HIGH)
-        return "on"
-    except Exception as identifier:
-        return "fail"
+#### 아두이노 
 
 
-# @app.route("/led/off")
-def led_off():
-    try:
-        GPIO.output(14, GPIO.LOW)
-        return "off"
-    except expression as identifier:
-        return "fail"
-    
-@app.route('/FARM/{user_id}/{site_id}/CONTROL/ETC/ETC_2', methods = ['POST']) # 환풍기 전원
+
+# 환풍기 제어
+@app.route('/FARM/<user_id>/<site_id>/CONTROL/ETC/ETC_1', methods = ['POST']) # 환풍기 전원
 def control_fan(user_id, site_id):
+
     status = request.json.get('status')
-    if status == 'on':
-        # 팬 작동 코드 추가
-        fan_on()
-        return '팬 작동 요청 성공', 200
-    elif status == 'off':
-        # 팬 중지 코드 추가
-        fan_off() 
+    # stauts : True == on, False == off
+    if status == True :
+
+        url = 'http://192.168.0.100:5000/FARM/02/CONTROL/ETC/ETC_1'
+        data = {'status': 'on'}
+        response = requests.post(url, json=data)
+
         return '팬 중지 요청 성공', 200  
+    
+    elif status == False :
+
+        url = 'http://192.168.0.100:5000/FARM/02/CONTROL/ETC/ETC_1'
+        data = {'status': 'off'}
+        response = requests.post(url, json=data)
+
     else:
         return '잘못된 요청입니다', 400
 
-@app.route('/FARM/{user_id}/{site_id}/CONTROL/ETC/ETC_3', methods = ['POST']) #조도센서 전원
-def control_ligh(user_id, site_id):
+
+# 환풍구 제어
+@app.route('/FARM/<user_id>/<site_id>/CONTROL/ETC/ETC_2', methods = ['POST']) # 환풍구 전원
+def control_fan(user_id, site_id):
+
     status = request.json.get('status')
-    if status == 'on':
-        # 팬 작동 코드 추가
-        led_on()
-        return '조도센서 작동 요청 성공', 200
-    elif status == 'off':
-        # 팬 중지 코드 추가
-        led_off() 
-        return '조도센서 중지 요청 성공', 200  
+    # stauts : True == on, False == off
+    if status == True :
+
+        url = 'http://192.168.0.100:5000/FARM/02/CONTROL/ETC/ETC_2'
+        data = {'status': 'on'}
+        response = requests.post(url, json=data)
+
+        return '팬 중지 요청 성공', 200  
+    
+    elif status == False :
+
+        url = 'http://192.168.0.100:5000/FARM/02/CONTROL/ETC/ETC_2'
+        data = {'status': 'off'}
+        response = requests.post(url, json=data)
+
     else:
         return '잘못된 요청입니다', 400
+    
+
+
+# 조도 제어
+@app.route('/FARM/<user_id>/<site_id>/CONTROL/ETC/ETC_3', methods = ['POST']) #조도센서 전원
+def control_ligh(user_id, site_id):
+
+    status = request.json.get('status')
+    # stauts : True == on, False == off
+    if status == True :
+
+        # 팬 작동 코드 추가
+      
+        return '조도센서 작동 요청 성공', 200
+    
+    elif status == False :
+
+        # 팬 중지 코드 추가
+
+        return '조도센서 중지 요청 성공', 200  
+    
+    else:
+        
+        return '잘못된 요청입니다', 400
+
+
+
+
+### 플러터 연동
 
 
 #로그인
 @app.route('/farm/v1/login', methods=['GET','POST'])
-# @app.route('/farm/v1/login', methods=['POST'])
 def login():
     try :
-        # session['id'] =''
-        if request.method == 'GET':            
+        
+        if request.method == 'GET':   
+
             id = request.args.get('id')
             password = request.args.get('password')
+        
         elif request.method == 'POST':
+
             id = request.form.get('id')
             password = request.form.get('password')
             print('id : ',id)
         
-        #db
+        # db 불러오기
         cursor = mysql.connection.cursor()
         sql = 'SELECT * FROM users WHERE user_id = %s AND password = %s'
         values = (id, password)
         cursor.execute(sql, values)
         user = cursor.fetchone()
 
+        # 유저 정보 조회
         if user:
             
             user_id = user[0]
-            # session['id'] = user_id
             user_name = user[1]
             e_mail = user[6]
 
             return jsonify({'user_id': user_id, 'user_name' : user_name, 'e_mail': e_mail}), 200
+       
         else:
+            
             return jsonify({'result': 'fail', 'message': 'Invalid login credentials'}) ,400
     
     except Exception as e:
         print("Error: ", e)
         return jsonify({'error': str(e)}), 500
 
+
+
 #비밀 번호 변경
 @app.route('/farm/v1/<string:user_id>/change_password', methods=['GET', 'POST'])
 def change_password(user_id):
     try:
+        # 현재 비밀번호, 새 비밀번호, 비밀번호 확인 값 받아오기
+       
         # GET 방식일 경우
         if request.method == 'GET':
             current_password = request.args.get('current_password')
             new_password = request.args.get('new_password')
             confirm_password = request.args.get('confirm_password')
-            
+       
+        # POST 방식일 경우    
         elif request.method == 'POST':
-            # 현재 비밀번호, 새 비밀번호, 비밀번호 확인 값 받아오기
+            
             current_password = request.form.get("current_password")
             new_password = request.form.get("new_password")
             confirm_password = request.form.get("confirm_password")
             
         # 새 비밀번호와 비밀번호 확인 값이 같은지 확인
         if new_password != confirm_password:
+
             return jsonify({'message': 'New password and confirm password do not match.'}), 400
         
-        # # 현재 사용자의 id 가져오기
-        # user_id = session.get('id')
-        # if user_id is None:
-        #     print("no id")
-        #     return jsonify({'message': 'Authentication failed.'}), 401
-        
-        user_id = user_id
         # 현재 비밀번호가 맞는지 확인
+
+        # db 불러오기
         cursor = mysql.connection.cursor()
         sql = 'SELECT * FROM mydb.users WHERE user_id = %s AND password = %s'
         values = (user_id, current_password)
@@ -171,7 +191,7 @@ def change_password(user_id):
 
 
 # user 별 site 데이터
-@app.route(f'/FARM/<string:user_id>/sites', methods=['GET'])
+@app.route('/FARM/<string:user_id>/sites', methods=['GET'])
 def get_site_data(user_id):
     try: 
         cursor = mysql.connection.cursor()
@@ -199,6 +219,7 @@ def get_site_data(user_id):
 @app.route('/FARM/<string:user_id>/<string:site_id>/MONITORING/EXTERNAL_SENSOR')
 def external_sensor_all(user_id, site_id):
     try:
+        # db 불러오기
         cursor = mysql.connection.cursor()
         now = datetime.now()
         date = now.strftime("%Y%m%d")  # 현재 날짜
@@ -230,6 +251,7 @@ def external_sensor_all(user_id, site_id):
 @app.route('/FARM/<string:user_id>/<string:site_id>/MONITORING/EXTERNAL_SENSOR/<string:sensor_type>/GRAPH')
 def external_sensor_type(user_id, site_id, sensor_type):
     try :
+        # db 불러오기
         cursor = mysql.connection.cursor()
         today = datetime.now()
         yesterday = today - timedelta(days=1)
@@ -257,14 +279,16 @@ def external_sensor_type(user_id, site_id, sensor_type):
         return jsonify({'error': str(e)}), 500
 
 
+
 # 내부 환경 데이터 
 @app.route('/FARM/<string:user_id>/<string:site_id>/MONITORING/INTERNAL_SENSOR')
 def internal_sensor_all(user_id, site_id):
     try:
+        # db 불러오기 
         cursor = mysql.connection.cursor()
         now = datetime.now()
         date = now.strftime("%Y%m%d")  # 현재 날짜
-        time = now.strftime('%H%M')[:-1] + '0' # 10분단위
+        time = now.strftime('%H%M')[:-1] + '0' # 10분단위 설정
         # 현재 시간 이전의 데이터 중 가장 최신 값을 가져오기
         sql = "SELECT * FROM mydb.internal WHERE sites_site_id= %s AND in_date <= %s AND in_time <= %s ORDER BY in_date DESC, in_time DESC LIMIT 1"
         values = (site_id, date, time)
@@ -284,6 +308,7 @@ def internal_sensor_all(user_id, site_id):
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 
 # 내부환경 센서 타입별 그래프
@@ -316,18 +341,38 @@ def internal_sensor_type(user_id, site_id, sensor_type):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/test', methods = ['POST'])
-def test():
-    # cursor = mysql.connection.cursor()
-    # user_id = session['id']
-    # sql = f"select * from sites where users_user_id = '{user_id}' " 
-    # cursor.execute(sql)
-    # data = cursor.fetchone()
+#카메라
+@app.route('/FARM/<string:user_id>/<string:site_id>/cctv', methods = ['GET'])
+def cctv(user_id, site_id):
+    user_id = user_id
+    site_id = site_id
+    return render_template('camera.html')
 
-    # return jsonify(data) 
-    # val = request.get_json() 
-    val = request.get.form
-    return jsonify(result = val)
+
+
+#외부 데이터 가져오기 
+@app.route('/FARM/<string:site_id>/weather', methods = ['GET'])
+def weather_data(site_id):
+        # exteranl모듈 weather 호출
+        fcst_date, time, temp, hum, wind_speed, wind_dir, pty = weather()
+
+        # db 연동
+        cursor = mysql.connection.cursor()
+        min_len = min(len(temp), len(hum), len(wind_speed), len(wind_dir), len(pty))
+        sql = """INSERT IGNORE INTO external 
+                (sites_site_id, ex_date, ex_time, temperature, humidity,  wind_speed, wind_dir, weather) 
+                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+        # db 입력
+        for i in range(min_len):
+            values = (site_id, fcst_date[i], time[i], float(temp[i]), float(hum[i]), float(wind_speed[i]), wind_dir[i], pty[i])
+            cursor.execute(sql, values)
+
+        mysql.connection.commit()
+
+        return jsonify({'good': 'good'}), 200
+        
+
+        
 
 if __name__ == '__main__':
     app.run( debug = True)
