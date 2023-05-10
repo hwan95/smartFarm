@@ -7,12 +7,14 @@ import json
 import sys
 from external import weather
 
+
 # flask 설정
 app = Flask(__name__)
 app.secret_key = 'my_secret_key'
 app.config['JSON_AS_ASCII'] = False
 # mysql 설정 정보
-app.config['MYSQL_HOST'] = '172.16.10.57'
+# app.config['MYSQL_HOST'] = '172.16.10.57'
+app.config['MYSQL_HOST'] = '43.201.161.172'
 app.config['MYSQL_USER'] = 'test'
 app.config['MYSQL_PASSWORD'] = 'test'
 app.config['MYSQL_DB'] = 'mydb'
@@ -21,51 +23,68 @@ mysql = MySQL(app)
 
 #### 아두이노 
 
-
-
 # 환풍기 제어
 @app.route('/FARM/<user_id>/<site_id>/CONTROL/ETC/ETC_1', methods = ['POST']) # 환풍기 전원
 def control_fan(user_id, site_id):
 
-    status = request.json.get('status')
+    status = request.form.get('status')
     # stauts : True == on, False == off
-    if status == True :
+    if status == 'True' :
 
-        url = 'http://192.168.0.100:5000/FARM/02/CONTROL/ETC/ETC_1'
-        data = {'status': 'on'}
-        response = requests.post(url, json=data)
+        url = f'http://175.196.82.2:10018/FARM/{user_id}/{site_id}/CONTROL/ETC/ETC_1'
+        data = {'status': 'fan_on'}
+        headers = {'Content-Type': 'application/json'}
+        response = requests.post(url, json=data, headers=headers)
 
-        return '팬 중지 요청 성공', 200  
+        if response.status_code == 200 : 
+            return '팬 작동 요청 성공', 200
+        else :
+            return '팬 작동 요청 실패' , 500
     
-    elif status == False :
+    elif status == 'False' :
 
-        url = 'http://192.168.0.100:5000/FARM/02/CONTROL/ETC/ETC_1'
-        data = {'status': 'off'}
-        response = requests.post(url, json=data)
+        url = f'http://175.196.82.2:10018/FARM/{user_id}/{site_id}/CONTROL/ETC/ETC_1'
+        data = {'status': 'fan_off'}
+        headers = {'Content-Type': 'application/json'}
+        response = requests.post(url, json=data, headers=headers)
 
+        if response.status_code == 200 : 
+            return '팬 중지 요청 성공', 200
+        else :
+            return '팬 중지 요청 실패' , 500
+        
     else:
         return '잘못된 요청입니다', 400
 
 
 # 환풍구 제어
 @app.route('/FARM/<user_id>/<site_id>/CONTROL/ETC/ETC_2', methods = ['POST']) # 환풍구 전원
-def control_fan(user_id, site_id):
+def control_servo(user_id, site_id):
 
-    status = request.json.get('status')
+    status = request.form.get('status')
     # stauts : True == on, False == off
-    if status == True :
+    if status == 'True' :
 
-        url = 'http://192.168.0.100:5000/FARM/02/CONTROL/ETC/ETC_2'
-        data = {'status': 'on'}
-        response = requests.post(url, json=data)
-
-        return '팬 중지 요청 성공', 200  
+        url = f'http://175.196.82.2:10018/FARM/{user_id}/{site_id}/CONTROL/ETC/ETC_2'
+        data = {'status': 'open'}
+        headers = {'Content-Type': 'application/json'}
+        response = requests.post(url, json=data, headers=headers)
+        if response.status_code == 200 : 
+            return '환풍구 열기 요청 성공', 200
+        else :
+            return '환풍구 열기 요청 실패' , 500 
     
-    elif status == False :
+    elif status == 'False' :
 
-        url = 'http://192.168.0.100:5000/FARM/02/CONTROL/ETC/ETC_2'
-        data = {'status': 'off'}
-        response = requests.post(url, json=data)
+        url = f'http://175.196.82.2:10018/FARM/{user_id}/{site_id}/CONTROL/ETC/ETC_2'
+        data = {'status': 'close'}
+        headers = {'Content-Type': 'application/json'}
+        response = requests.post(url, json=data, headers=headers)
+
+        if response.status_code == 200 : 
+            return '환풍구 닫기 요청 성공', 200
+        else :
+            return '환풍구 닫기 요청 실패' , 500
 
     else:
         return '잘못된 요청입니다', 400
@@ -74,27 +93,39 @@ def control_fan(user_id, site_id):
 
 # 조도 제어
 @app.route('/FARM/<user_id>/<site_id>/CONTROL/ETC/ETC_3', methods = ['POST']) #조도센서 전원
-def control_ligh(user_id, site_id):
+def control_light(user_id, site_id):
 
-    status = request.json.get('status')
+    status = request.form.get('status')
     # stauts : True == on, False == off
-    if status == True :
+    if status == 'True' :
 
-        # 팬 작동 코드 추가
-      
-        return '조도센서 작동 요청 성공', 200
+        #led 작동 코드 추가
+        url = f'http://175.196.82.2:10018/FARM/{user_id}/{site_id}/CONTROL/ETC/ETC_3'
+        data = {'status': 'led_on'}
+        headers = {'Content-Type': 'application/json'}
+        response = requests.post(url, json=data, headers=headers)
+        print(response.text)
+        if response.status_code == 200 : 
+            return '조도센서 작동 요청 성공', 200
+        else :
+            return '조도센서 작동 요청 실패' , 500
     
-    elif status == False :
+    elif status == 'False' :
 
-        # 팬 중지 코드 추가
-
-        return '조도센서 중지 요청 성공', 200  
+        #led 중지 코드 추가
+        url = f'http://175.196.82.2:10018/FARM/{user_id}/{site_id}/CONTROL/ETC/ETC_3'
+        data = {'status': 'led_off'}
+        headers = {'Content-Type': 'application/json'}
+        response = requests.post(url, json=data, headers=headers)     
+        # response.status_code
+        if response.status_code == 200 : 
+            return '조도센서 중지 요청 성공', 200
+        else :
+            return '조도센서 중지 요청 실패' , 500
     
     else:
         
         return '잘못된 요청입니다', 400
-
-
 
 
 ### 플러터 연동
@@ -195,7 +226,6 @@ def change_password(user_id):
 def get_site_data(user_id):
     try: 
         cursor = mysql.connection.cursor()
-        # sql = f"SELECT * FROM mydb.sites WHERE users_user_id = '{user_id}'"
         sql = f"""SELECT s.site_id, s.users_user_id, u.user_name, u.e_mail 
                 FROM mydb.sites s JOIN mydb.users u 
                 ON s.users_user_id = u.user_id WHERE s.users_user_id = '{user_id}'"""
@@ -310,6 +340,33 @@ def internal_sensor_all(user_id, site_id):
         return jsonify({'error': str(e)}), 500
 
 
+# 제어신호 보내기
+# fan
+@app.route('/FARM/<string:site_id>/MONITORING/CONTROL/ETC')
+def control_sensor_type(site_id):
+    try:
+        cursor = mysql.connection.cursor()
+        sql = f"""SELECT  in_date, in_time,fan, sub_motor, light_sensor 
+                FROM mydb.internal 
+                WHERE sites_site_id = {site_id} 
+                ORDER BY sites_site_id DESC, in_date DESC 
+                LIMIT 1"""
+        cursor.execute(sql)
+        data = cursor.fetchone()
+        fan = str(data[2])
+        motor = str(data[3])
+        light = str(data[4])       
+
+        return jsonify({'fan': fan, 'led': light, 'door' : motor}) ,200 
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
+
+
+
+
 
 # 내부환경 센서 타입별 그래프
 @app.route('/FARM/<string:user_id>/<string:site_id>/MONITORING/INTERNAL_SENSOR/<string:sensor_type>/GRAPH')
@@ -375,4 +432,7 @@ def weather_data(site_id):
         
 
 if __name__ == '__main__':
-    app.run( debug = True)
+    app.run(host= '0.0.0.0', debug = True)
+
+
+
