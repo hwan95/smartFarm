@@ -4,13 +4,13 @@ from datetime import datetime
 import pandas as pd
 import sys
 
+
 def weather():
         service_key = "Q8bq6Cu0SbunyPYsVSE5cMj3YcUciY0kFrfm0ltvzQjCu7KbRCmp/t+yP0mHR6XeQ9BIBAH4Il5Bc1si+wiqmA=="
         url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst" # 기상청api 동네 단기예보
 
         now = datetime.now() # 현재 시각 데이터 생성
         base_date = now.strftime('%Y%m%d') # 현재 날짜 YYMMDD 형식
-
         params = {
             'serviceKey': service_key,
             'numOfRows': '1000',
